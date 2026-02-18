@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -19,6 +21,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import ca.gbc.comp3074.snapcal.viewmodel.ProgressViewModel
 import kotlin.math.max
@@ -31,6 +37,10 @@ fun ProgressScreen(
 ) {
     val data = progressVm.lastNDaysCalories(7).collectAsState().value
 
+    val total = data.sumOf { it.calories }
+    val avg = if (data.isNotEmpty()) total / data.size else 0
+    val best = data.maxByOrNull { it.calories }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -40,31 +50,117 @@ fun ProgressScreen(
         }
     ) { padding ->
         Column(
-            Modifier.padding(padding).padding(16.dp).fillMaxSize(),
+            modifier = Modifier
+                .padding(padding)
+                .padding(16.dp)
+                .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Last 7 days calories", style = MaterialTheme.typography.titleMedium)
 
-            Card(Modifier.fillMaxWidth()) {
+            Text("Last 7 days", style = MaterialTheme.typography.titleLarge)
+
+            // Stats row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                StatCard(
+                    title = "Total",
+                    value = if (data.isEmpty()) "—" else "$total kcal",
+                    modifier = Modifier.weight(1f)
+                )
+                StatCard(
+                    title = "Average",
+                    value = if (data.isEmpty()) "—" else "$avg kcal",
+                    modifier = Modifier.weight(1f)
+                )
+                StatCard(
+                    title = "Best day",
+                    value = if (best == null) "—" else "${best.day.substring(5)} • ${best.calories} kcal",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            ) {
                 Column(Modifier.padding(16.dp)) {
+                    Text(
+                        "Calories chart",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(Modifier.height(10.dp))
+
                     if (data.isEmpty()) {
-                        Text("No data yet. Add meals to see progress.")
+                        Text(
+                            "No data yet. Add meals to see progress.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     } else {
                         CaloriesBarChart(
-                            labels = data.map { it.day.substring(5) }, // show MM-DD
+                            labels = data.map { it.day.substring(5) }, // MM-DD
                             values = data.map { it.calories }
                         )
                     }
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
             if (data.isNotEmpty()) {
-                Text("Daily totals:")
-                data.forEach {
-                    Text("${it.day}: ${it.calories} kcal")
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text("Daily totals", style = MaterialTheme.typography.titleMedium)
+                        Spacer(Modifier.height(8.dp))
+                        data.forEach {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(it.day)
+                                Text("${it.calories} kcal")
+                            }
+                        }
+                    }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun StatCard(
+    title: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Column(Modifier.padding(14.dp)) {
+            Text(
+                title,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                value,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
         }
     }
 }
@@ -73,11 +169,23 @@ fun ProgressScreen(
 private fun CaloriesBarChart(labels: List<String>, values: List<Int>) {
     val maxVal = max(values.maxOrNull() ?: 1, 1)
 
+    val barColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
+    val bgLine = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
+
+    // Chart
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
-            .height(180.dp)
+            .height(190.dp)
     ) {
+        // subtle baseline
+        drawLine(
+            color = bgLine,
+            start = Offset(0f, size.height),
+            end = Offset(size.width, size.height),
+            strokeWidth = 2f
+        )
+
         val barCount = values.size
         val spacing = size.width * 0.06f
         val usableWidth = size.width - spacing * (barCount + 1)
@@ -85,18 +193,33 @@ private fun CaloriesBarChart(labels: List<String>, values: List<Int>) {
 
         values.forEachIndexed { i, v ->
             val left = spacing + i * (barWidth + spacing)
-            val barHeight = (v.toFloat() / maxVal.toFloat()) * size.height
+            val barHeight = (v.toFloat() / maxVal.toFloat()) * (size.height * 0.95f)
             val top = size.height - barHeight
-            drawRect(
-                color = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.25f),
-                topLeft = androidx.compose.ui.geometry.Offset(left, top),
-                size = androidx.compose.ui.geometry.Size(barWidth, barHeight)
+
+            drawRoundRect(
+                color = barColor,
+                topLeft = Offset(left, top),
+                size = Size(barWidth, barHeight),
+                cornerRadius = CornerRadius(18f, 18f)
             )
         }
     }
 
     Spacer(Modifier.height(8.dp))
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        labels.forEach { Text(it, style = MaterialTheme.typography.labelSmall) }
+
+    // Labels
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        labels.forEach { label ->
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }

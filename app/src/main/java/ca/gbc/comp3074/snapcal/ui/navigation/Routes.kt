@@ -10,4 +10,7 @@ object Routes {
     const val MENU = "menu"
     const val PLANNER = "planner"
     const val SHOPPING = "shopping"
+
+    const val WATER = "water"
+
 }

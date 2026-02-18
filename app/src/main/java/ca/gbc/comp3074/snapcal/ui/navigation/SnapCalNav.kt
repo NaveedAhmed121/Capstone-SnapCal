@@ -1,5 +1,6 @@
 package ca.gbc.comp3074.snapcal.ui.navigation
 
+import android.app.Application
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -7,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -28,6 +30,7 @@ import ca.gbc.comp3074.snapcal.ui.screens.PlannerScreen
 import ca.gbc.comp3074.snapcal.ui.screens.ProgressScreen
 import ca.gbc.comp3074.snapcal.ui.screens.ScanScreen
 import ca.gbc.comp3074.snapcal.ui.screens.ShoppingScreen
+import ca.gbc.comp3074.snapcal.ui.screens.WaterScreen
 import ca.gbc.comp3074.snapcal.ui.water.WaterViewModel
 import ca.gbc.comp3074.snapcal.ui.water.WaterViewModelFactory
 import ca.gbc.comp3074.snapcal.viewmodel.MealsViewModel
@@ -41,11 +44,9 @@ fun SnapCalApp() {
         val navController = rememberNavController()
         val context = LocalContext.current
 
-        // Current route (safe)
         val backStackEntry = navController.currentBackStackEntryAsState().value
         val currentRoute = backStackEntry?.destination?.route ?: Routes.DASHBOARD
 
-        // Start destination based on login state
         val startDestination =
             if (AuthState.isLoggedIn.value) Routes.DASHBOARD else Routes.LOGIN
 
@@ -58,14 +59,15 @@ fun SnapCalApp() {
         val mealsVm: MealsViewModel = viewModel(factory = MealsViewModelFactory(mealRepo))
         val progressVm: ProgressViewModel = viewModel(factory = ProgressViewModelFactory(mealRepo))
         val waterVm: WaterViewModel = viewModel(factory = WaterViewModelFactory(waterRepo))
-        val app = context.applicationContext as android.app.Application
-        val healthConnectVm: HealthConnectViewModel =
-            viewModel(factory = androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory(app))
 
-        // Keep mealPlanVm stable across navigation (simple demo-safe)
+        // HealthConnectViewModel is AndroidViewModel (needs Application)
+        val app = context.applicationContext as Application
+        val healthConnectVm: HealthConnectViewModel =
+            viewModel(factory = ViewModelProvider.AndroidViewModelFactory(app))
+
         val mealPlanVm = remember { MealPlanViewModel() }
 
-        // Hide bottom bar for Login/Manual/Scan
+        // Hide bottom bar on these routes
         val showBottomBar = currentRoute !in listOf(
             Routes.LOGIN,
             Routes.MANUAL_MEAL,
@@ -94,6 +96,7 @@ fun SnapCalApp() {
                 startDestination = startDestination,
                 modifier = Modifier.padding(paddingValues)
             ) {
+
                 composable(Routes.LOGIN) {
                     LoginScreen(
                         onLoginSuccess = {
@@ -116,6 +119,11 @@ fun SnapCalApp() {
                         onMenu = { navController.navigate(Routes.MENU) },
                         onPlanner = { navController.navigate(Routes.PLANNER) }
                     )
+                }
+
+                // ✅ ADD THIS ROUTE (even if not in bottom bar)
+                composable(Routes.WATER) {
+                    WaterScreen(vm = waterVm)
                 }
 
                 composable(Routes.MENU) {
