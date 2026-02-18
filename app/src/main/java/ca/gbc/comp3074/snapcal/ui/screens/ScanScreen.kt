@@ -17,6 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.concurrent.futures.await
 import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
@@ -55,10 +57,9 @@ fun ScanScreen(
         if (!hasPermission) permissionLauncher.launch(Manifest.permission.CAMERA)
     }
 
-    fun startCamera() {
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
-        cameraProviderFuture.addListener({
-            val cameraProvider = cameraProviderFuture.get()
+    LaunchedEffect(hasPermission) {
+        if (hasPermission) {
+            val cameraProvider = ProcessCameraProvider.getInstance(context).await()
 
             val preview = Preview.Builder()
                 .build()
@@ -78,11 +79,7 @@ fun ScanScreen(
                 preview,
                 imageCapture
             )
-        }, ContextCompat.getMainExecutor(context))
-    }
-
-    LaunchedEffect(hasPermission) {
-        if (hasPermission) startCamera()
+        }
     }
 
     Scaffold(
@@ -106,7 +103,12 @@ fun ScanScreen(
             }
 
             // Camera Preview
-            AndroidViewBox(previewView)
+            AndroidView(
+                factory = { previewView },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(280.dp)
+            )
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Button(
@@ -136,7 +138,7 @@ fun ScanScreen(
                                                     isProcessing = false
                                                 }
                                                 .addOnFailureListener {
-                                                    recognizedText = "OCR failed: ${it.message}"
+                                                    recognizedText = "OCR failed: ${'$'}{it.message}"
                                                     isProcessing = false
                                                 }
                                                 .addOnCompleteListener {
@@ -148,14 +150,14 @@ fun ScanScreen(
                                             imageProxy.close()
                                         }
                                     } catch (e: Exception) {
-                                        recognizedText = "Error: ${e.message}"
+                                        recognizedText = "Error: ${'$'}{e.message}"
                                         isProcessing = false
                                         imageProxy.close()
                                     }
                                 }
 
                                 override fun onError(exception: ImageCaptureException) {
-                                    recognizedText = "Capture error: ${exception.message}"
+                                    recognizedText = "Capture error: ${'$'}{exception.message}"
                                     isProcessing = false
                                 }
                             }
@@ -179,14 +181,4 @@ fun ScanScreen(
             )
         }
     }
-}
-
-@Composable
-private fun AndroidViewBox(previewView: PreviewView) {
-    androidx.compose.ui.viewinterop.AndroidView(
-        factory = { previewView },
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(280.dp)
-    )
 }

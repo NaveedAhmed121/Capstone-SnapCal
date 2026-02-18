@@ -7,12 +7,12 @@ plugins {
 
 android {
     namespace = "ca.gbc.comp3074.snapcal"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "ca.gbc.comp3074.snapcal"
-        minSdk = 24
-        targetSdk = 34
+        minSdk = 26
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
     }
@@ -46,6 +46,7 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
+    implementation("androidx.health.connect:connect-client:1.2.0-alpha02")
 
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.8.0")
@@ -54,7 +55,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.6")
 
-    // ✅ Room (KSP) - FIXED
+    // Room
     implementation("androidx.room:room-runtime:2.7.0")
     implementation("androidx.room:room-ktx:2.7.0")
     ksp("androidx.room:room-compiler:2.7.0")
@@ -70,4 +71,16 @@ dependencies {
 
     // ML Kit Text Recognition
     implementation("com.google.mlkit:text-recognition:16.0.0")
+
+    // Health Connect
+    implementation("androidx.health.connect:connect-client:1.2.0-alpha02")
+// Health Connect (stable)
+    implementation("androidx.health.connect:connect-client:1.1.0")
+
+    // Futures
+    implementation("androidx.concurrent:concurrent-futures-ktx:1.1.0")
+
+    // Guava for ListenableFuture
+    implementation("com.google.guava:guava:33.0.0-android")
+
 }

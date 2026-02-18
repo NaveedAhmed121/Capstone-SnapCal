@@ -14,10 +14,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import ca.gbc.comp3074.snapcal.ui.healthconnect.HealthConnectViewModel
 import ca.gbc.comp3074.snapcal.ui.water.WaterViewModel
 import ca.gbc.comp3074.snapcal.viewmodel.MealsViewModel
 
@@ -25,13 +28,25 @@ import ca.gbc.comp3074.snapcal.viewmodel.MealsViewModel
 fun DashboardScreen(
     mealsVm: MealsViewModel,
     waterVm: WaterViewModel,
+    healthConnectVm: HealthConnectViewModel,
     onAddManual: () -> Unit,
     onScan: () -> Unit,
     onProgress: () -> Unit,
     onMenu: () -> Unit,
     onPlanner: () -> Unit,
 ) {
+    val context = LocalContext.current
+
+    // Water from Room
     val todayWaterTotal by waterVm.todayTotalMl.collectAsState(initial = 0)
+
+    // Steps from HealthConnect VM (mutableStateOf)
+    val steps = healthConnectVm.steps.value
+
+    // Load steps on start (will show 0 if not available or no permission)
+    LaunchedEffect(Unit) {
+        healthConnectVm.initialLoad()
+    }
 
     Column(
         modifier = Modifier
@@ -41,8 +56,8 @@ fun DashboardScreen(
     ) {
         Text("Dashboard", style = MaterialTheme.typography.headlineMedium)
 
-        // Calories / Meals quick summary (simple for demo)
-        Card {
+        // ✅ Quick actions
+        Card(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
                 Text("Quick Actions", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(12.dp))
@@ -67,26 +82,54 @@ fun DashboardScreen(
             }
         }
 
-        // Water (demo placeholder — we’ll connect to Room next)
-        Card {
+        // ✅ Water tracker (Room + ViewModel)
+        Card(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
                 Text("Water", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(6.dp))
-                Text("Today: ${todayWaterTotal ?: 0} ml")
+                Text("Today: $todayWaterTotal ml")
+
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { waterVm.add(250) }) { Text("+250") }
-                    OutlinedButton(onClick = { waterVm.add(500) }) { Text("+500") }
+                    OutlinedButton(onClick = { waterVm.add(250) }, modifier = Modifier.weight(1f)) {
+                        Text("+250 ml")
+                    }
+                    OutlinedButton(onClick = { waterVm.add(500) }, modifier = Modifier.weight(1f)) {
+                        Text("+500 ml")
+                    }
                 }
             }
         }
 
-        // Steps (demo placeholder — can connect to Health Connect later)
-        Card {
+        // ✅ Steps (safe placeholder without PermissionController)
+        Card(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
                 Text("Steps", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(6.dp))
-                Text("Today: 0 steps")
+                Text("Today: $steps steps")
+
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = { healthConnectVm.initialLoad() },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Refresh")
+                    }
+
+                    OutlinedButton(
+                        onClick = { healthConnectVm.openHealthConnect(context) },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Open HC")
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "If steps stay 0: install Health Connect + grant permission inside Health Connect settings.",
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
         }
     }

@@ -18,6 +18,7 @@ import ca.gbc.comp3074.snapcal.data.repo.MealRepository
 import ca.gbc.comp3074.snapcal.data.repo.WaterRepository
 import ca.gbc.comp3074.snapcal.ui.auth.AuthState
 import ca.gbc.comp3074.snapcal.ui.components.SnapCalBottomBar
+import ca.gbc.comp3074.snapcal.ui.healthconnect.HealthConnectViewModel
 import ca.gbc.comp3074.snapcal.ui.meals.MealPlanViewModel
 import ca.gbc.comp3074.snapcal.ui.screens.DashboardScreen
 import ca.gbc.comp3074.snapcal.ui.screens.LoginScreen
@@ -57,6 +58,9 @@ fun SnapCalApp() {
         val mealsVm: MealsViewModel = viewModel(factory = MealsViewModelFactory(mealRepo))
         val progressVm: ProgressViewModel = viewModel(factory = ProgressViewModelFactory(mealRepo))
         val waterVm: WaterViewModel = viewModel(factory = WaterViewModelFactory(waterRepo))
+        val app = context.applicationContext as android.app.Application
+        val healthConnectVm: HealthConnectViewModel =
+            viewModel(factory = androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory(app))
 
         // Keep mealPlanVm stable across navigation (simple demo-safe)
         val mealPlanVm = remember { MealPlanViewModel() }
@@ -105,6 +109,7 @@ fun SnapCalApp() {
                     DashboardScreen(
                         mealsVm = mealsVm,
                         waterVm = waterVm,
+                        healthConnectVm = healthConnectVm,
                         onAddManual = { navController.navigate(Routes.MANUAL_MEAL) },
                         onScan = { navController.navigate(Routes.SCAN) },
                         onProgress = { navController.navigate(Routes.PROGRESS) },
