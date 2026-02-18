@@ -1,0 +1,179 @@
+package ca.gbc.comp3074.snapcal.ui.navigation
+
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import ca.gbc.comp3074.snapcal.data.db.DatabaseProvider
+import ca.gbc.comp3074.snapcal.data.repo.MealRepository
+import ca.gbc.comp3074.snapcal.data.repo.WaterRepository
+import ca.gbc.comp3074.snapcal.ui.auth.AuthState
+import ca.gbc.comp3074.snapcal.ui.components.SnapCalBottomBar
+import ca.gbc.comp3074.snapcal.ui.meals.MealPlanViewModel
+import ca.gbc.comp3074.snapcal.ui.screens.DashboardScreen
+import ca.gbc.comp3074.snapcal.ui.screens.LoginScreen
+import ca.gbc.comp3074.snapcal.ui.screens.ManualMealScreen
+import ca.gbc.comp3074.snapcal.ui.screens.MenuScreen
+import ca.gbc.comp3074.snapcal.ui.screens.PlannerScreen
+import ca.gbc.comp3074.snapcal.ui.screens.ProgressScreen
+import ca.gbc.comp3074.snapcal.ui.screens.ScanScreen
+import ca.gbc.comp3074.snapcal.ui.screens.ShoppingScreen
+import ca.gbc.comp3074.snapcal.ui.water.WaterViewModel
+import ca.gbc.comp3074.snapcal.ui.water.WaterViewModelFactory
+import ca.gbc.comp3074.snapcal.viewmodel.MealsViewModel
+import ca.gbc.comp3074.snapcal.viewmodel.MealsViewModelFactory
+import ca.gbc.comp3074.snapcal.viewmodel.ProgressViewModel
+import ca.gbc.comp3074.snapcal.viewmodel.ProgressViewModelFactory
+
+@Composable
+fun SnapCalApp() {
+    MaterialTheme {
+        val navController = rememberNavController()
+        val context = LocalContext.current
+
+        // Current route (safe)
+        val backStackEntry = navController.currentBackStackEntryAsState().value
+        val currentRoute = backStackEntry?.destination?.route ?: Routes.DASHBOARD
+
+        // Start destination based on login state
+        val startDestination =
+            if (AuthState.isLoggedIn.value) Routes.DASHBOARD else Routes.LOGIN
+
+        // DB + Repos
+        val db = remember { DatabaseProvider.get(context) }
+        val mealRepo = remember { MealRepository(db.mealLogDao()) }
+        val waterRepo = remember { WaterRepository(db.waterDao()) }
+
+        // ViewModels
+        val mealsVm: MealsViewModel = viewModel(factory = MealsViewModelFactory(mealRepo))
+        val progressVm: ProgressViewModel = viewModel(factory = ProgressViewModelFactory(mealRepo))
+        val waterVm: WaterViewModel = viewModel(factory = WaterViewModelFactory(waterRepo))
+
+        // Keep mealPlanVm stable across navigation (simple demo-safe)
+        val mealPlanVm = remember { MealPlanViewModel() }
+
+        // Hide bottom bar for Login/Manual/Scan
+        val showBottomBar = currentRoute !in listOf(
+            Routes.LOGIN,
+            Routes.MANUAL_MEAL,
+            Routes.SCAN
+        )
+
+        Scaffold(
+            bottomBar = {
+                if (showBottomBar) {
+                    SnapCalBottomBar(currentRoute = currentRoute) { route ->
+                        if (route != currentRoute) {
+                            navController.navigate(route) {
+                                launchSingleTop = true
+                                restoreState = true
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        ) { paddingValues ->
+            NavHost(
+                navController = navController,
+                startDestination = startDestination,
+                modifier = Modifier.padding(paddingValues)
+            ) {
+                composable(Routes.LOGIN) {
+                    LoginScreen(
+                        onLoginSuccess = {
+                            AuthState.isLoggedIn.value = true
+                            navController.navigate(Routes.DASHBOARD) {
+                                popUpTo(Routes.LOGIN) { inclusive = true }
+                            }
+                        }
+                    )
+                }
+
+                composable(Routes.DASHBOARD) {
+                    DashboardScreen(
+                        mealsVm = mealsVm,
+                        waterVm = waterVm,
+                        onAddManual = { navController.navigate(Routes.MANUAL_MEAL) },
+                        onScan = { navController.navigate(Routes.SCAN) },
+                        onProgress = { navController.navigate(Routes.PROGRESS) },
+                        onMenu = { navController.navigate(Routes.MENU) },
+                        onPlanner = { navController.navigate(Routes.PLANNER) }
+                    )
+                }
+
+                composable(Routes.MENU) {
+                    MenuScreen(
+                        mealPlanVm = mealPlanVm,
+                        onGoPlanner = { navController.navigate(Routes.PLANNER) }
+                    )
+                }
+
+                composable(Routes.PLANNER) {
+                    PlannerScreen(
+                        mealPlanVm = mealPlanVm,
+                        onGoShopping = { navController.navigate(Routes.SHOPPING) },
+                        onGoMenu = { navController.navigate(Routes.MENU) }
+                    )
+                }
+
+                composable(Routes.SHOPPING) {
+                    ShoppingScreen(
+                        mealPlanVm = mealPlanVm,
+                        onGoPlanner = { navController.navigate(Routes.PLANNER) }
+                    )
+                }
+
+                composable(Routes.MANUAL_MEAL) {
+                    ManualMealScreen(
+                        onBack = { navController.popBackStack() },
+                        onSave = { name, cals, p, c, f ->
+                            mealsVm.addMeal(name, cals, p, c, f)
+                            navController.popBackStack()
+                        }
+                    )
+                }
+
+                composable(Routes.SCAN) {
+                    ScanScreen(
+                        onBack = { navController.popBackStack() },
+                        onUseText = { recognizedText ->
+                            val calories = Regex("""(\d+)\s*k?cal""", RegexOption.IGNORE_CASE)
+                                .find(recognizedText)
+                                ?.groupValues
+                                ?.get(1)
+                                ?.toIntOrNull() ?: 0
+
+                            mealsVm.addMeal(
+                                name = "Scanned meal",
+                                calories = calories,
+                                protein = 0,
+                                carbs = 0,
+                                fat = 0
+                            )
+                            navController.popBackStack()
+                        }
+                    )
+                }
+
+                composable(Routes.PROGRESS) {
+                    ProgressScreen(
+                        onBack = { navController.popBackStack() },
+                        progressVm = progressVm
+                    )
+                }
+            }
+        }
+    }
+}
