@@ -14,4 +14,9 @@ class WaterViewModel(private val repo: WaterRepository) : ViewModel() {
         if (amountMl <= 0) return
         viewModelScope.launch { repo.add(amountMl) }
     }
+
+    fun subtract(amountMl: Int) {
+        if (amountMl <= 0) return
+        viewModelScope.launch { repo.subtract(amountMl) }
+    }
 }

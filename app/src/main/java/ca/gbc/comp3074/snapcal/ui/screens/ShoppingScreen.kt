@@ -8,9 +8,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -37,7 +41,7 @@ fun ShoppingScreen(
             TopAppBar(
                 title = { Text("🛒 Shopping List") },
                 actions = {
-                    if (state.shoppingByCategory.isNotEmpty()) {
+                    if (state.shoppingByCategory.isNotEmpty() || state.adHocShoppingItems.isNotEmpty()) {
                         Button(onClick = { mealPlanVm.clearShoppingList() }) { Text("Clear") }
                     }
                 }
@@ -51,7 +55,7 @@ fun ShoppingScreen(
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            if (state.shoppingByCategory.isEmpty()) {
+            if (state.shoppingByCategory.isEmpty() && state.adHocShoppingItems.isEmpty()) {
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("No shopping list yet", fontWeight = FontWeight.SemiBold)
@@ -66,6 +70,42 @@ fun ShoppingScreen(
                 }
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxSize()) {
+                    if (state.adHocShoppingItems.isNotEmpty()) {
+                        item {
+                            Card(Modifier.fillMaxWidth()) {
+                                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text("🛒 Other Items", fontWeight = FontWeight.SemiBold)
+                                    state.adHocShoppingItems.forEach { itemName ->
+                                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                            Text(itemName)
+                                            IconButton(onClick = { mealPlanVm.removeAdHocShoppingItem(itemName) }) {
+                                                Icon(Icons.Default.Delete, contentDescription = "Remove")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (state.plannedMeals.isNotEmpty()) {
+                        item {
+                            Card(Modifier.fillMaxWidth()) {
+                                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text("From Your Meal Plan", fontWeight = FontWeight.SemiBold)
+                                    state.plannedMeals.forEach { plannedMeal ->
+                                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                            Text(plannedMeal.meal.name)
+                                            IconButton(onClick = { mealPlanVm.removeMeal(plannedMeal.meal.id) }) {
+                                                Icon(Icons.Default.Delete, contentDescription = "Remove")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     items(state.shoppingByCategory.entries.toList(), key = { it.key.name }) { (cat, items) ->
                         Card(Modifier.fillMaxWidth()) {
                             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -20,7 +20,8 @@ class MealPlanViewModel : ViewModel() {
 
     data class UiState(
         val plannedMeals: List<PlannedMeal> = emptyList(),
-        val shoppingByCategory: Map<DemoMeals.Category, List<ShoppingItem>> = emptyMap()
+        val shoppingByCategory: Map<DemoMeals.Category, List<ShoppingItem>> = emptyMap(),
+        val adHocShoppingItems: List<String> = emptyList()
     )
 
     private val _uiState = MutableStateFlow(UiState())
@@ -41,6 +42,7 @@ class MealPlanViewModel : ViewModel() {
 
     fun removeMeal(mealId: Int) {
         _uiState.update { s -> s.copy(plannedMeals = s.plannedMeals.filterNot { it.meal.id == mealId }) }
+        generateShoppingList()
     }
 
     fun clearPlan() {
@@ -75,7 +77,15 @@ class MealPlanViewModel : ViewModel() {
     }
 
     fun clearShoppingList() {
-        _uiState.update { it.copy(shoppingByCategory = emptyMap()) }
+        _uiState.update { it.copy(shoppingByCategory = emptyMap(), adHocShoppingItems = emptyList()) }
+    }
+
+    fun addToShoppingList(itemName: String) {
+        _uiState.update { it.copy(adHocShoppingItems = it.adHocShoppingItems + itemName) }
+    }
+
+    fun removeAdHocShoppingItem(itemName: String) {
+        _uiState.update { it.copy(adHocShoppingItems = it.adHocShoppingItems - itemName) }
     }
 
     fun loadDemoPlan() {

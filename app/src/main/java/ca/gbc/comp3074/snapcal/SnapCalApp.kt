@@ -6,6 +6,7 @@ import ca.gbc.comp3074.snapcal.ui.theme.SnapCalTheme
 
 @Composable
 fun SnapCallAppRoot() {
+    // ✅ dynamicColor is off by default now (Theme.kt)
     SnapCalTheme {
         SnapCalApp()
     }

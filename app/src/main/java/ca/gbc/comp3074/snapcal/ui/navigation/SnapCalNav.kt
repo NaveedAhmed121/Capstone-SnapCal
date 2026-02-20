@@ -29,6 +29,7 @@ import ca.gbc.comp3074.snapcal.ui.screens.MenuScreen
 import ca.gbc.comp3074.snapcal.ui.screens.PlannerScreen
 import ca.gbc.comp3074.snapcal.ui.screens.ProgressScreen
 import ca.gbc.comp3074.snapcal.ui.screens.ScanScreen
+import ca.gbc.comp3074.snapcal.ui.screens.ScanViewModel
 import ca.gbc.comp3074.snapcal.ui.screens.ShoppingScreen
 import ca.gbc.comp3074.snapcal.ui.screens.WaterScreen
 import ca.gbc.comp3074.snapcal.ui.water.WaterViewModel
@@ -57,15 +58,16 @@ fun SnapCalApp() {
 
         // ViewModels
         val mealsVm: MealsViewModel = viewModel(factory = MealsViewModelFactory(mealRepo))
-        val progressVm: ProgressViewModel = viewModel(factory = ProgressViewModelFactory(mealRepo))
+        val progressVm: ProgressViewModel = viewModel(factory = ProgressViewModelFactory(mealRepo, waterRepo))
         val waterVm: WaterViewModel = viewModel(factory = WaterViewModelFactory(waterRepo))
+        val scanVm: ScanViewModel = viewModel()
 
         // HealthConnectViewModel is AndroidViewModel (needs Application)
         val app = context.applicationContext as Application
         val healthConnectVm: HealthConnectViewModel =
             viewModel(factory = ViewModelProvider.AndroidViewModelFactory(app))
 
-        val mealPlanVm = remember { MealPlanViewModel() }
+        val mealPlanVm: MealPlanViewModel = viewModel()
 
         // Hide bottom bar on these routes
         val showBottomBar = currentRoute !in listOf(
@@ -113,6 +115,7 @@ fun SnapCalApp() {
                         mealsVm = mealsVm,
                         waterVm = waterVm,
                         healthConnectVm = healthConnectVm,
+                        mealPlanVm = mealPlanVm,
                         onAddManual = { navController.navigate(Routes.MANUAL_MEAL) },
                         onScan = { navController.navigate(Routes.SCAN) },
                         onProgress = { navController.navigate(Routes.PROGRESS) },
@@ -161,29 +164,36 @@ fun SnapCalApp() {
                 composable(Routes.SCAN) {
                     ScanScreen(
                         onBack = { navController.popBackStack() },
-                        onUseText = { recognizedText ->
-                            val calories = Regex("""(\d+)\s*k?cal""", RegexOption.IGNORE_CASE)
-                                .find(recognizedText)
-                                ?.groupValues
-                                ?.get(1)
-                                ?.toIntOrNull() ?: 0
-
-                            mealsVm.addMeal(
-                                name = "Scanned meal",
-                                calories = calories,
-                                protein = 0,
-                                carbs = 0,
-                                fat = 0
-                            )
+                        onBarcodeScanned = { barcode ->
+                            val product = scanVm.product
+                            if (product != null) {
+                                mealsVm.addMeal(
+                                    name = product.product_name ?: "Scanned Product",
+                                    calories = product.nutriments?.energy_kcal_100g?.toInt() ?: 0,
+                                    protein = product.nutriments?.proteins_100g?.toInt() ?: 0,
+                                    carbs = product.nutriments?.carbohydrates_100g?.toInt() ?: 0,
+                                    fat = product.nutriments?.fat_100g?.toInt() ?: 0
+                                )
+                            } else {
+                                mealsVm.addMeal(
+                                    name = "Scanned: $barcode",
+                                    calories = 0,
+                                    protein = 0,
+                                    carbs = 0,
+                                    fat = 0
+                                )
+                            }
                             navController.popBackStack()
-                        }
+                        },
+                        scanViewModel = scanVm
                     )
                 }
 
                 composable(Routes.PROGRESS) {
                     ProgressScreen(
                         onBack = { navController.popBackStack() },
-                        progressVm = progressVm
+                        progressVm = progressVm,
+                        healthConnectVm = healthConnectVm
                     )
                 }
             }

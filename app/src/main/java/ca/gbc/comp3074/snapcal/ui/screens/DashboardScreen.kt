@@ -1,5 +1,7 @@
 package ca.gbc.comp3074.snapcal.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,16 +13,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.LocalDrink
 import androidx.compose.material.icons.filled.Restaurant
-import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -34,6 +36,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ca.gbc.comp3074.snapcal.ui.healthconnect.HealthConnectViewModel
+import ca.gbc.comp3074.snapcal.ui.meals.MealPlanViewModel
 import ca.gbc.comp3074.snapcal.ui.water.WaterViewModel
 import ca.gbc.comp3074.snapcal.viewmodel.MealsViewModel
 
@@ -42,6 +45,7 @@ fun DashboardScreen(
     mealsVm: MealsViewModel,
     waterVm: WaterViewModel,
     healthConnectVm: HealthConnectViewModel,
+    mealPlanVm: MealPlanViewModel,
     onAddManual: () -> Unit,
     onScan: () -> Unit,
     onProgress: () -> Unit,
@@ -52,11 +56,29 @@ fun DashboardScreen(
 
     val mealState = mealsVm.uiState.collectAsState().value
     val todayWaterTotal by waterVm.todayTotalMl.collectAsState(initial = 0)
+
     val steps by healthConnectVm.steps
+    val hasHealthConnectPermissions by healthConnectVm.hasHealthConnectPermissions
+    val hasNormalPermissions by healthConnectVm.hasNormalPermissions
+
+    val needsInstallOrUpdate = healthConnectVm.needsInstallOrUpdate(context)
+    val isAvailable = healthConnectVm.isAvailable(context)
+
+    val healthConnectPermissionLauncher = rememberLauncherForActivityResult(
+        contract = healthConnectVm.permissionRequestContract()
+    ) { _ ->
+        healthConnectVm.refreshHealthConnectPermissionsState(context)
+        healthConnectVm.refreshSteps(context)
+    }
+
+    val normalPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { _ ->
+        healthConnectVm.refreshNormalPermissionsState(context)
+    }
 
     LaunchedEffect(Unit) {
-        // Don’t crash if permission isn’t granted; your VM handles it
-        healthConnectVm.refreshSteps()
+        healthConnectVm.initialCheck(context)
     }
 
     LazyColumn(
@@ -65,6 +87,7 @@ fun DashboardScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+
         item {
             Text("Dashboard", style = MaterialTheme.typography.headlineMedium)
             Text(
@@ -74,7 +97,6 @@ fun DashboardScreen(
             )
         }
 
-        // ✅ Calories summary
         item {
             ElevatedCard(
                 modifier = Modifier.fillMaxWidth(),
@@ -96,9 +118,9 @@ fun DashboardScreen(
                     )
                     Spacer(Modifier.height(12.dp))
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = onProgress, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Default.ShowChart, contentDescription = null)
+                            Icon(Icons.AutoMirrored.Filled.ShowChart, contentDescription = null)
                             Text("Progress", modifier = Modifier.padding(start = 8.dp))
                         }
                         OutlinedButton(onClick = onPlanner, modifier = Modifier.weight(1f)) {
@@ -110,74 +132,97 @@ fun DashboardScreen(
             }
         }
 
-        // ✅ Water + Steps
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // Water card
                 Card(
                     modifier = Modifier.weight(1f),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(Modifier.padding(16.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Icon(Icons.Default.LocalDrink, contentDescription = null)
                             Text("Water", style = MaterialTheme.typography.titleMedium)
                         }
-
+                        Spacer(Modifier.height(6.dp))
                         Text("$todayWaterTotal ml", style = MaterialTheme.typography.headlineSmall)
                         Text(
                             "Today",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-
+                        Spacer(Modifier.height(10.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = { waterVm.add(250) }, modifier = Modifier.weight(1f)) { Text("+250") }
-                            OutlinedButton(onClick = { waterVm.add(500) }, modifier = Modifier.weight(1f)) { Text("+500") }
+                            OutlinedButton(onClick = { waterVm.add(250) }, modifier = Modifier.weight(1f)) {
+                                Text("+250")
+                            }
+                            OutlinedButton(onClick = { waterVm.add(500) }, modifier = Modifier.weight(1f)) {
+                                Text("+500")
+                            }
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                             OutlinedButton(
+                                onClick = { waterVm.subtract(250) },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("-250")
+                            }
                         }
                     }
                 }
 
+                // Steps card
                 Card(
                     modifier = Modifier.weight(1f),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(Modifier.padding(16.dp)) {
                         Text("Steps", style = MaterialTheme.typography.titleMedium)
-                        Text("$steps", style = MaterialTheme.typography.headlineSmall)
-                        Text(
-                            if (healthConnectVm.isAvailable.value) "Health Connect" else "Not available",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text("$steps steps", style = MaterialTheme.typography.headlineSmall)
 
+                        Spacer(Modifier.height(10.dp))
                         Button(
                             onClick = {
-                                if (!healthConnectVm.isAvailable.value) {
-                                    healthConnectVm.openHealthConnect(context)
-                                } else {
-                                    healthConnectVm.refreshSteps()
+                                when {
+                                    needsInstallOrUpdate || !isAvailable -> {
+                                        healthConnectVm.openHealthConnectInPlayStore(context)
+                                    }
+                                    !hasNormalPermissions -> {
+                                        normalPermissionLauncher.launch(healthConnectVm.normalPermissions.toTypedArray())
+                                    }
+                                    !hasHealthConnectPermissions -> {
+                                        healthConnectPermissionLauncher.launch(healthConnectVm.healthConnectPermissions)
+                                    }
+                                    else -> {
+                                        healthConnectVm.refreshSteps(context)
+                                    }
                                 }
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(if (!healthConnectVm.isAvailable.value) "Install / Open" else "Refresh")
+                            Text(
+                                when {
+                                    needsInstallOrUpdate || !isAvailable -> "Install / Update Health Connect"
+                                    !hasNormalPermissions || !hasHealthConnectPermissions -> "Grant Permission"
+                                    else -> "Refresh Steps"
+                                }
+                            )
                         }
                     }
                 }
             }
         }
 
-        // ✅ Quick actions
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.padding(16.dp)) {
                     Text("Quick Actions", style = MaterialTheme.typography.titleMedium)
-
+                    Spacer(Modifier.height(10.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Button(onClick = onScan, modifier = Modifier.weight(1f)) {
                             Icon(Icons.Default.CameraAlt, contentDescription = null)
@@ -188,7 +233,7 @@ fun DashboardScreen(
                             Text("Manual", modifier = Modifier.padding(start = 8.dp))
                         }
                     }
-
+                    Spacer(Modifier.height(10.dp))
                     OutlinedButton(onClick = onMenu, modifier = Modifier.fillMaxWidth()) {
                         Text("Browse Healthy Menu")
                     }
@@ -196,10 +241,9 @@ fun DashboardScreen(
             }
         }
 
-        // ✅ Recent meals
         item {
             Text("Recent Meals", style = MaterialTheme.typography.titleMedium)
-            Divider()
+            HorizontalDivider()
         }
 
         if (mealState.meals.isEmpty()) {
@@ -225,6 +269,10 @@ fun DashboardScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedButton(onClick = { mealPlanVm.addToShoppingList(meal.name) }) {
+                            Text("Add to Shopping List")
+                        }
                     }
                 }
             }

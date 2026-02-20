@@ -25,6 +25,15 @@ interface WaterDao {
     )
     fun observeTodayTotalMl(): Flow<Int>
 
+    @Query("""
+        SELECT date(createdAt/1000, 'unixepoch', 'localtime') as day, SUM(amountMl) as calories
+        FROM water_entries
+        WHERE createdAt >= :sinceMillis
+        GROUP BY day
+        ORDER BY day ASC
+    """)
+    fun observeWaterByDay(sinceMillis: Long): Flow<List<DayTotal>>
+
     @Query("DELETE FROM water_entries")
     suspend fun clearAll()
 }

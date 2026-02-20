@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    kotlin("plugin.serialization") version "1.9.24"
 }
 
 android {
@@ -46,8 +47,6 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
-    implementation("androidx.health.connect:connect-client:1.2.0-alpha02")
-
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.8.0")
 
@@ -69,12 +68,10 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.3.4")
     implementation("androidx.camera:camera-view:1.3.4")
 
-    // ML Kit Text Recognition
-    implementation("com.google.mlkit:text-recognition:16.0.0")
+    // ML Kit Barcode Scanning
+    implementation("com.google.mlkit:barcode-scanning:17.2.0")
 
     // Health Connect
-    implementation("androidx.health.connect:connect-client:1.2.0-alpha02")
-// Health Connect (stable)
     implementation("androidx.health.connect:connect-client:1.1.0")
 
     // Futures
@@ -83,4 +80,12 @@ dependencies {
     // Guava for ListenableFuture
     implementation("com.google.guava:guava:33.0.0-android")
 
+    // Google Play Services for Health Connect
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
+
+    // Ktor for networking
+    implementation("io.ktor:ktor-client-core:2.3.12")
+    implementation("io.ktor:ktor-client-cio:2.3.12")
+    implementation("io.ktor:ktor-client-content-negotiation:2.3.12")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.12")
 }
