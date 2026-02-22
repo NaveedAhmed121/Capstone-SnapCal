@@ -1,9 +1,17 @@
 package ca.gbc.comp3074.snapcal.ui.screens
 
+<<<<<<< HEAD
 import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+=======
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+>>>>>>> 9660ae9ad87f9b335a9a28940f2b88583c6c5e8c
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,11 +32,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+<<<<<<< HEAD
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+=======
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+>>>>>>> 9660ae9ad87f9b335a9a28940f2b88583c6c5e8c
 import ca.gbc.comp3074.snapcal.ui.healthconnect.HealthConnectViewModel
 import ca.gbc.comp3074.snapcal.viewmodel.ProgressViewModel
 import java.time.LocalDate
@@ -46,6 +60,7 @@ fun ProgressScreen(
     val waterData = progressVm.lastNDaysWaterFilled(7).collectAsState(initial = emptyList()).value
     var stepsData by remember { mutableStateOf<Map<String, Long>>(emptyMap()) }
     val context = LocalContext.current
+<<<<<<< HEAD
     val hasPermission by healthConnectVm.hasHealthConnectPermissions
 
     LaunchedEffect(hasPermission) {
@@ -61,6 +76,18 @@ fun ProgressScreen(
             }
             stepsData = newStepsData
         }
+=======
+
+    LaunchedEffect(Unit) {
+        val today = LocalDate.now()
+        val newStepsData = (0..6).associate {
+            val date = today.minusDays(it.toLong())
+            val start = date.atStartOfDay(ZoneId.systemDefault()).toInstant()
+            val end = date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
+            date.toString() to healthConnectVm.readStepsByDate(context, start, end)
+        }
+        stepsData = newStepsData
+>>>>>>> 9660ae9ad87f9b335a9a28940f2b88583c6c5e8c
     }
 
     Scaffold(
@@ -117,9 +144,13 @@ fun ProgressScreen(
 
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp)) {
+<<<<<<< HEAD
                         if (!hasPermission) {
                             Text("Please grant Health Connect permissions to see your steps progress.")
                         } else if (stepsData.isEmpty()) {
+=======
+                        if (stepsData.isEmpty()) {
+>>>>>>> 9660ae9ad87f9b335a9a28940f2b88583c6c5e8c
                             Text("No data yet. Grant permission and walk to see progress.")
                         } else {
                             BarChart(
@@ -137,12 +168,16 @@ fun ProgressScreen(
 @Composable
 private fun BarChart(labels: List<String>, values: List<Float>) {
     val maxVal = max(values.maxOrNull() ?: 1f, 1f)
+<<<<<<< HEAD
     val labelColor = MaterialTheme.colorScheme.onSurface
     val barColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+=======
+>>>>>>> 9660ae9ad87f9b335a9a28940f2b88583c6c5e8c
 
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
+<<<<<<< HEAD
             .height(200.dp) // Increased height for labels
     ) {
         val barCount = values.size
@@ -182,4 +217,30 @@ private fun BarChart(labels: List<String>, values: List<Float>) {
             }
         }
     }
+=======
+            .height(180.dp)
+    ) {
+        val barCount = values.size
+        val spacing = size.width * 0.06f
+        val usableWidth = size.width - spacing * (barCount + 1)
+        val barWidth = usableWidth / barCount
+
+        values.forEachIndexed { i, v ->
+            val left = spacing + i * (barWidth + spacing)
+            val barHeight = (v / maxVal) * size.height
+            val top = size.height - barHeight
+
+            drawRect(
+                color = Color.Black.copy(alpha = 0.22f),
+                topLeft = androidx.compose.ui.geometry.Offset(left, top),
+                size = androidx.compose.ui.geometry.Size(barWidth, barHeight)
+            )
+        }
+    }
+
+    Spacer(Modifier.height(8.dp))
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        labels.forEach { Text(it, style = MaterialTheme.typography.labelSmall) }
+    }
+>>>>>>> 9660ae9ad87f9b335a9a28940f2b88583c6c5e8c
 }

@@ -10,7 +10,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+<<<<<<< HEAD
 import androidx.navigation.NavController
+=======
+>>>>>>> 9660ae9ad87f9b335a9a28940f2b88583c6c5e8c
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -49,6 +52,7 @@ fun SnapCalApp() {
         val backStackEntry = navController.currentBackStackEntryAsState().value
         val currentRoute = backStackEntry?.destination?.route ?: Routes.DASHBOARD
 
+<<<<<<< HEAD
         val navigateTo: (String) -> Unit = { route ->
             if (route != currentRoute) {
                 navController.navigate(route) {
@@ -61,6 +65,8 @@ fun SnapCalApp() {
             }
         }
 
+=======
+>>>>>>> 9660ae9ad87f9b335a9a28940f2b88583c6c5e8c
         val startDestination =
             if (AuthState.isLoggedIn.value) Routes.DASHBOARD else Routes.LOGIN
 
@@ -92,7 +98,21 @@ fun SnapCalApp() {
         Scaffold(
             bottomBar = {
                 if (showBottomBar) {
+<<<<<<< HEAD
                     SnapCalBottomBar(currentRoute = currentRoute, onNavigate = navigateTo)
+=======
+                    SnapCalBottomBar(currentRoute = currentRoute) { route ->
+                        if (route != currentRoute) {
+                            navController.navigate(route) {
+                                launchSingleTop = true
+                                restoreState = true
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                            }
+                        }
+                    }
+>>>>>>> 9660ae9ad87f9b335a9a28940f2b88583c6c5e8c
                 }
             }
         ) { paddingValues ->
@@ -121,9 +141,15 @@ fun SnapCalApp() {
                         mealPlanVm = mealPlanVm,
                         onAddManual = { navController.navigate(Routes.MANUAL_MEAL) },
                         onScan = { navController.navigate(Routes.SCAN) },
+<<<<<<< HEAD
                         onProgress = { navigateTo(Routes.PROGRESS) },
                         onMenu = { navigateTo(Routes.MENU) },
                         onPlanner = { navigateTo(Routes.PLANNER) }
+=======
+                        onProgress = { navController.navigate(Routes.PROGRESS) },
+                        onMenu = { navController.navigate(Routes.MENU) },
+                        onPlanner = { navController.navigate(Routes.PLANNER) }
+>>>>>>> 9660ae9ad87f9b335a9a28940f2b88583c6c5e8c
                     )
                 }
 
@@ -135,22 +161,35 @@ fun SnapCalApp() {
                 composable(Routes.MENU) {
                     MenuScreen(
                         mealPlanVm = mealPlanVm,
+<<<<<<< HEAD
                         onGoPlanner = { navigateTo(Routes.PLANNER) }
+=======
+                        onGoPlanner = { navController.navigate(Routes.PLANNER) }
+>>>>>>> 9660ae9ad87f9b335a9a28940f2b88583c6c5e8c
                     )
                 }
 
                 composable(Routes.PLANNER) {
                     PlannerScreen(
                         mealPlanVm = mealPlanVm,
+<<<<<<< HEAD
                         onGoShopping = { navigateTo(Routes.SHOPPING) },
                         onGoMenu = { navigateTo(Routes.MENU) }
+=======
+                        onGoShopping = { navController.navigate(Routes.SHOPPING) },
+                        onGoMenu = { navController.navigate(Routes.MENU) }
+>>>>>>> 9660ae9ad87f9b335a9a28940f2b88583c6c5e8c
                     )
                 }
 
                 composable(Routes.SHOPPING) {
                     ShoppingScreen(
                         mealPlanVm = mealPlanVm,
+<<<<<<< HEAD
                         onGoPlanner = { navigateTo(Routes.PLANNER) }
+=======
+                        onGoPlanner = { navController.navigate(Routes.PLANNER) }
+>>>>>>> 9660ae9ad87f9b335a9a28940f2b88583c6c5e8c
                     )
                 }
 
