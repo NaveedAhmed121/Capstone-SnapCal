@@ -1,6 +1,7 @@
 package ca.gbc.comp3074.snapcal.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import ca.gbc.comp3074.snapcal.data.model.User
 import ca.gbc.comp3074.snapcal.data.repo.UserRepository
@@ -54,7 +55,7 @@ class AuthViewModel(private val repo: UserRepository) : ViewModel() {
                 passwordHash = hashedPassword,
                 isAdmin = isAdmin
             )
-            repo.insert(newUser)
+            repo.signup(newUser)
             AuthState.isLoggedIn.value = true
             AuthState.currentUser.value = newUser
             onSuccess()
@@ -64,5 +65,12 @@ class AuthViewModel(private val repo: UserRepository) : ViewModel() {
     fun logout() {
         AuthState.isLoggedIn.value = false
         AuthState.currentUser.value = null
+    }
+}
+
+class AuthViewModelFactory(private val repo: UserRepository) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        @Suppress("UNCHECKED_CAST")
+        return AuthViewModel(repo) as T
     }
 }
