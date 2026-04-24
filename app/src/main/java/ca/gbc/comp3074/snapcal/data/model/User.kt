@@ -9,6 +9,5 @@ data class User(
     val username: String,
     val email: String,
     val passwordHash: String,
-    val isAdmin: Boolean = false,
-    val createdAt: Long = System.currentTimeMillis()
+    val isAdmin: Boolean = false
 )
