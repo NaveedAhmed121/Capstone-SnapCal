@@ -1,0 +1,3 @@
+-keep class ca.gbc.comp3074.snapcal.** { *; }
+-keepattributes *Annotation*
+-dontwarn kotlinx.serialization.**
